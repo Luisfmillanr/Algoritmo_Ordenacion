@@ -193,11 +193,9 @@ def aplicacion_principal():
     resultado_label = ttk.Label(main_frame, text="Resultados aparecerán aquí")
     resultado_label.grid(column=0, row=3, columnspan=3, sticky=tk.W, pady=5, padx=5)
     ttk.Button(main_frame, text="Ejecutar", command=lambda: aplicar_algoritmo(algoritmo_seleccionado.get(), archivo_seleccionado.get(), resultado_label)).grid(column=2, row=2, sticky=tk.W, pady=5, padx=5)
-    
     info_creador = "luisfmillanr: www.linkedin.com/in/fernando-dataanaliyst Correo:luisfmillanr@gmail.com " 
     label_creador = ttk.Label(main_frame, text=info_creador, font=('Arial', '10', 'italic' ))
     label_creador.grid(column=0, row=4, columnspan=3, sticky=tk.W, pady=10)
-    
     main_frame.columnconfigure(1, weight=1)
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
