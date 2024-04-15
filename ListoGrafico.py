@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
-import time
+import random
 
 #Leer el archivo
 def leer_datos(archivo):
@@ -14,10 +14,37 @@ def leer_datos(archivo):
                 continue
     return numeros
 
-#Algoritmos de Ordenacion
+def verificar_ordenacion(original, ordenada):
+    """
+    Verifica si la lista 'ordenada' está ordenada correctamente en base a la lista 'original'.
+
+    Args:
+        original (list): La lista original sin ordenar.
+        ordenada (list): La lista ordenada a verificar.
+
+    Returns:
+        bool: True si la lista 'ordenada' está ordenada correctamente, False en caso contrario.
+    """
+
+    if len(original) != len(ordenada):
+        return False
+
+    anterior = None
+    for i, elemento in enumerate(ordenada):
+        if anterior is not None and elemento < anterior:
+            return False
+        if elemento in original:
+            original.remove(elemento)
+        else:
+            return False
+        anterior = elemento
+
+    return len(original) == 0  # Si todos los elementos de 'original' se encuentran en 'ordenada'
+
 
 # Algoritmo de ordenación Bubble Sort
 def bubble_sort(lista):
+    original = lista[:]
     n = len(lista)
     num_comparaciones = 0
     num_intercambios = 0
@@ -27,10 +54,12 @@ def bubble_sort(lista):
             if lista[j] > lista[j + 1]:
                 lista[j], lista[j + 1] = lista[j + 1], lista[j]
                 num_intercambios += 1
+    assert verificar_ordenacion(original, lista), "Error en la ordenación"
     return num_comparaciones, num_intercambios
 
 # Algoritmo de ordenación Insertion Sort
 def insertion_sort(lista):
+    original = lista[:]
     num_comparaciones = 0
     num_inserciones = 0
     for i in range(1, len(lista)):
@@ -42,21 +71,24 @@ def insertion_sort(lista):
             j -= 1
             num_inserciones += 1
         lista[j + 1] = key
+    assert verificar_ordenacion(original, lista), "Error en la ordenación"
     return num_comparaciones, num_inserciones
 
 # Algoritmo de ordenación Merge Sort
-# Corrección para la función merge_sort
 def merge_sort(lista):
+    original = lista[:]
+    comparaciones = 0
     if len(lista) > 1:
         mid = len(lista) // 2
         L = lista[:mid]
         R = lista[mid:]
 
-        merge_sort(L)
-        merge_sort(R)
+        comparaciones += merge_sort(L)[1]
+        comparaciones += merge_sort(R)[1]
 
         i = j = k = 0
         while i < len(L) and j < len(R):
+            comparaciones += 1
             if L[i] < R[j]:
                 lista[k] = L[i]
                 i += 1
@@ -74,25 +106,12 @@ def merge_sort(lista):
             lista[k] = R[j]
             j += 1
             k += 1
-    # No necesita retornar la lista porque la modifica directamente
-
-def merge(L, R):
-    lista = []
-    i = j = comparaciones = 0
-    while i < len(L) and j < len(R):
-        comparaciones += 1
-        if L[i] < R[j]:
-            lista.append(L[i])
-            i += 1
-        else:
-            lista.append(R[j])
-            j += 1
-    lista += L[i:] + R[j:]
+    assert verificar_ordenacion(original, lista), "Error en la ordenación"
     return lista, comparaciones
-
 
 # Algoritmo de ordenación Selection Sort
 def selection_sort(lista):
+    original = lista[:]
     num_comparaciones = 0
     num_intercambios = 0
     for i in range(len(lista)):
@@ -104,25 +123,32 @@ def selection_sort(lista):
         if min_idx != i:
             lista[i], lista[min_idx] = lista[min_idx], lista[i]
             num_intercambios += 1
+    assert verificar_ordenacion(original, lista), "Error en la ordenación"
     return num_comparaciones, num_intercambios
 
-# Algoritmo de ordenación Quicksort
-def quicksort(lista, inicio, fin):
-    if inicio < fin:
-        p_index = partition(lista, inicio, fin)
-        quicksort(lista, inicio, p_index - 1)
-        quicksort(lista, p_index + 1, fin)
-    return lista
-
-def partition(lista, inicio, fin):
+# Función de partición para Quicksort
+def partition(lista, inicio, fin, comparaciones, intercambios):
+    pivote_index = random.randint(inicio, fin)
+    lista[pivote_index], lista[fin] = lista[fin], lista[pivote_index]
     pivote = lista[fin]
     p_index = inicio
     for i in range(inicio, fin):
-        if lista[i] < pivote:
+        comparaciones += 1
+        if lista[i] <= pivote:
             lista[i], lista[p_index] = lista[p_index], lista[i]
             p_index += 1
+            intercambios += 1
     lista[p_index], lista[fin] = lista[fin], lista[p_index]
-    return p_index
+    intercambios += 1
+    return p_index, comparaciones, intercambios
+
+# Algoritmo de ordenación Quicksort
+def quicksort(lista, inicio, fin, comparaciones=0, intercambios=0):
+    if inicio < fin:
+        p_index, comparaciones, intercambios = partition(lista, inicio, fin, comparaciones, intercambios)
+        comparaciones, intercambios = quicksort(lista, inicio, p_index - 1, comparaciones, intercambios)
+        comparaciones, intercambios = quicksort(lista, p_index + 1, fin, comparaciones, intercambios)
+    return comparaciones, intercambios
 
 # La función de selección de archivo, que estaba faltando
 def seleccionar_archivo(variable_archivo):
@@ -199,7 +225,7 @@ def aplicacion_principal():
 
     # Botón para ejecutar algoritmo
     ttk.Button(main_frame, text="Ejecutar", command=lambda: aplicar_algoritmo(algoritmo_seleccionado.get(), archivo_seleccionado.get(), resultado_label)).grid(column=2, row=2, sticky=tk.W, pady=5, padx=5)
-
+    
     # Etiqueta para mostrar resultados
     resultado_label = ttk.Label(main_frame, text="Resultados aparecerán aquí")
     resultado_label.grid(column=0, row=3, columnspan=3, sticky=tk.W, pady=5, padx=5)

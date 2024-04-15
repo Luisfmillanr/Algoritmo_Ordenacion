@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 import random
+import time
 
 # Función para leer datos del archivo
 def leer_datos(archivo):
@@ -33,6 +34,7 @@ def verificar_ordenacion(original, ordenada):
 
 # Algoritmo Bubble Sort
 def bubble_sort(lista):
+    start_time = time.perf_counter()  # Inicia la medición de tiempo
     original = lista[:]
     n = len(lista)
     num_comparaciones = 0
@@ -43,11 +45,13 @@ def bubble_sort(lista):
             if lista[j] > lista[j + 1]:
                 lista[j], lista[j + 1] = lista[j + 1], lista[j]
                 num_intercambios += 1
+    time_elapsed = time.perf_counter() - start_time  # Calcula el tiempo transcurrido
     assert verificar_ordenacion(original, lista), "Error en la ordenación"
-    return num_comparaciones, num_intercambios
+    return num_comparaciones, num_intercambios, time_elapsed
 
 # Algoritmo Insertion Sort
 def insertion_sort(lista):
+    start_time = time.perf_counter()  # Inicia la medición de tiempo
     original = lista[:]
     num_comparaciones = 0
     num_inserciones = 0
@@ -60,42 +64,52 @@ def insertion_sort(lista):
             j -= 1
             num_inserciones += 1
         lista[j + 1] = key
+    time_elapsed = time.perf_counter() - start_time  # Calcula el tiempo transcurrido
     assert verificar_ordenacion(original, lista), "Error en la ordenación"
-    return num_comparaciones, num_inserciones
+    return num_comparaciones, num_inserciones, time_elapsed
 
 # Algoritmo Merge Sort
 def merge_sort(lista):
-    original = lista[:]
-    comparaciones = 0
-    if len(lista) > 1:
-        mid = len(lista) // 2
-        L = lista[:mid]
-        R = lista[mid:]
-        comparaciones += merge_sort(L)[1]
-        comparaciones += merge_sort(R)[1]
-        i = j = k = 0
-        while i < len(L) and j < len(R):
-            comparaciones += 1
-            if L[i] < R[j]:
-                lista[k] = L[i]
+    start_time = time.perf_counter()  # Inicia la medición de tiempo solo una vez al comienzo de la función principal
+    def merge_sort_rec(sublista):
+        if len(sublista) > 1:
+            mid = len(sublista) // 2
+            L = merge_sort_rec(sublista[:mid])
+            R = merge_sort_rec(sublista[mid:])
+
+            i = j = k = 0
+            comparaciones = 0
+            while i < len(L) and j < len(R):
+                comparaciones += 1
+                if L[i] < R[j]:
+                    sublista[k] = L[i]
+                    i += 1
+                else:
+                    sublista[k] = R[j]
+                    j += 1
+                k += 1
+
+            while i < len(L):
+                sublista[k] = L[i]
                 i += 1
-            else:
-                lista[k] = R[j]
+                k += 1
+
+            while j < len(R):
+                sublista[k] = R[j]
                 j += 1
-            k += 1
-        while i < len(L):
-            lista[k] = L[i]
-            i += 1
-            k += 1
-        while j < len(R):
-            lista[k] = R[j]
-            j += 1
-            k += 1
-    assert verificar_ordenacion(original, lista), "Error en la ordenación"
-    return lista, comparaciones
+                k += 1
+            return sublista, comparaciones
+        else:
+            return sublista, 0
+
+    sorted_list, total_comparisons = merge_sort_rec(lista)
+    time_elapsed = time.perf_counter() - start_time  # Calcula el tiempo transcurrido después de la recursividad
+    assert verificar_ordenacion(lista, sorted_list), "Error en la ordenación"
+    return total_comparisons, time_elapsed
 
 # Algoritmo Selection Sort
 def selection_sort(lista):
+    start_time = time.perf_counter()  # Inicia la medición de tiempo
     original = lista[:]
     num_comparaciones = 0
     num_intercambios = 0
@@ -108,10 +122,20 @@ def selection_sort(lista):
         if min_idx != i:
             lista[i], lista[min_idx] = lista[min_idx], lista[i]
             num_intercambios += 1
+    time_elapsed = time.perf_counter() - start_time  # Calcula el tiempo transcurrido
     assert verificar_ordenacion(original, lista), "Error en la ordenación"
-    return num_comparaciones, num_intercambios
+    return num_comparaciones, num_intercambios, time_elapsed
 
 # Función de partición para Quicksort
+def quicksort(lista, inicio=0, fin=None, comparaciones=0, intercambios=0):
+    if fin is None:
+        fin = len(lista) - 1
+    if inicio < fin:
+        p_index, comparaciones, intercambios = partition(lista, inicio, fin, comparaciones, intercambios)
+        comparaciones, intercambios = quicksort(lista, inicio, p_index - 1, comparaciones, intercambios)
+        comparaciones, intercambios = quicksort(lista, p_index + 1, fin, comparaciones, intercambios)
+    return comparaciones, intercambios
+
 def partition(lista, inicio, fin, comparaciones, intercambios):
     pivote_index = random.randint(inicio, fin)
     lista[pivote_index], lista[fin] = lista[fin], lista[pivote_index]
@@ -126,14 +150,6 @@ def partition(lista, inicio, fin, comparaciones, intercambios):
     lista[p_index], lista[fin] = lista[fin], lista[p_index]
     intercambios += 1
     return p_index, comparaciones, intercambios
-
-# Algoritmo Quicksort
-def quicksort(lista, inicio, fin, comparaciones=0, intercambios=0):
-    if inicio < fin:
-        p_index, comparaciones, intercambios = partition(lista, inicio, fin, comparaciones, intercambios)
-        comparaciones, intercambios = quicksort(lista, inicio, p_index - 1, comparaciones, intercambios)
-        comparaciones, intercambios = quicksort(lista, p_index + 1, fin, comparaciones, intercambios)
-    return comparaciones, intercambios
 
 # Función para seleccionar archivo
 def seleccionar_archivo(variable_archivo):
@@ -154,24 +170,27 @@ def guardar_archivo_ordenado(numeros_ordenados):
 def aplicar_algoritmo(algoritmo_seleccionado, archivo_seleccionado, resultado_label):
     numeros = leer_datos(archivo_seleccionado)
     resultado = ""
+    tiempo = 0  # Variable para el tiempo de ejecución
     if algoritmo_seleccionado == "Bubble Sort":
-        comparaciones, intercambios = bubble_sort(numeros)
+        comparaciones, intercambios, tiempo = bubble_sort(numeros)
         resultado = f"Bubble Sort: {comparaciones} comparaciones, {intercambios} intercambios."
     elif algoritmo_seleccionado == "Insertion Sort":
-        comparaciones, inserciones = insertion_sort(numeros)
+        comparaciones, inserciones, tiempo = insertion_sort(numeros)
         resultado = f"Insertion Sort: {comparaciones} comparaciones, {inserciones} inserciones."
     elif algoritmo_seleccionado == "Merge Sort":
-        numeros, comparaciones = merge_sort(numeros)
+        comparaciones, tiempo = merge_sort(numeros)  # Asegúrate de que merge_sort también devuelva el tiempo
         resultado = f"Merge Sort: {comparaciones} comparaciones."
     elif algoritmo_seleccionado == "Selection Sort":
-        comparaciones, intercambios = selection_sort(numeros)
+        comparaciones, intercambios, tiempo = selection_sort(numeros)
         resultado = f"Selection Sort: {comparaciones} comparaciones, {intercambios} intercambios."
     elif algoritmo_seleccionado == "Quicksort":
-        comparaciones, intercambios = quicksort(numeros, 0, len(numeros) - 1)
+        comparaciones, intercambios, tiempo = quicksort(numeros, 0, len(numeros) - 1)
         resultado = f"Quicksort: {comparaciones} comparaciones, {intercambios} intercambios."
     else:
         resultado = "Algoritmo no reconocido."
-    resultado_label.config(text=resultado)
+    
+    # Actualiza la etiqueta de resultados con el tiempo de ejecución
+    resultado_label.config(text=resultado + f" Tiempo de ejecución: {tiempo:.6f} segundos")
     if messagebox.askyesno("Guardar", "¿Deseas guardar los resultados ordenados?"):
         guardar_archivo_ordenado(numeros)
 
